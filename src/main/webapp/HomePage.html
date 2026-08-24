@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<meta charset="UTF-8">
+
+<title>Relationship Explorer</title>
+
+<style>
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 40px 20px;
+    background: #f7f8fa;
+    color: #222;
+}
+
+/* ---------- Header ---------- */
+
+.header {
+    text-align: center;
+    margin-bottom: 35px;
+}
+
+.header h1 {
+    margin: 0;
+    font-size: 32px;
+}
+
+.header p {
+    margin-top: 8px;
+    color: #666;
+    font-size: 16px;
+}
+
+/* ---------- Main Features ---------- */
+
+.features {
+    max-width: 1000px;
+    margin: auto;
+
+    display: flex;
+    gap: 25px;
+    justify-content: center;
+    align-items: stretch;
+}
+
+.card {
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    padding: 25px;
+
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+
+    flex: 1;
+    min-width: 0;
+}
+
+.card h2 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 23px;
+}
+
+.card-description {
+    color: #666;
+    line-height: 1.5;
+    margin-bottom: 20px;
+}
+
+/* ---------- Form ---------- */
+
+label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: bold;
+}
+
+select,
+button {
+    width: 100%;
+    padding: 11px;
+
+    margin-bottom: 15px;
+
+    border: 1px solid #ccc;
+    border-radius: 5px;
+
+    font-size: 15px;
+}
+
+select {
+    background: white;
+}
+
+button {
+    background: #222;
+    color: white;
+    cursor: pointer;
+    border: none;
+}
+
+button:hover {
+    background: #444;
+}
+
+button:disabled {
+    background: #aaa;
+    cursor: not-allowed;
+}
+
+/* ---------- Explore ---------- */
+
+.hidden {
+    display: none;
+}
+
+.explore-button {
+    margin-top: 10px;
+}
+
+/* ---------- Recommendations ---------- */
+
+.recommendations {
+    max-width: 1000px;
+    margin: 30px auto 0;
+}
+
+.recommendation-card {
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+
+    padding: 22px;
+
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.recommendation-card h2 {
+    margin-top: 0;
+    margin-bottom: 18px;
+    font-size: 21px;
+}
+
+/* Each recommendation is deliberately NOT a card */
+
+.recommendation-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 12px;
+
+    margin-bottom: 15px;
+}
+
+.recommendation-label {
+    font-weight: bold;
+    min-width: 150px;
+}
+
+.recommendation-item {
+    color: #333;
+    cursor: pointer;
+
+    padding: 6px 10px;
+
+    border-radius: 5px;
+    background: #f1f2f4;
+
+    transition: 0.15s;
+}
+
+.recommendation-item:hover {
+    background: #e3e5e8;
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 750px) {
+
+    .features {
+        flex-direction: column;
+    }
+
+    .recommendation-label {
+        min-width: 100%;
+    }
+
+}
+
+</style>
+
+<script>
+
+document.addEventListener("DOMContentLoaded", async () => {
+
+    const fromNode = document.getElementById("fromNode");
+    const toNode = document.getElementById("toNode");
+    const exploreField = document.getElementById("exploreField");
+
+    const findPathBtn =
+        document.getElementById("findPathButton");
+
+    const submitButton =
+        document.getElementById("submitButton");
+
+
+    /* ================= LOAD NODES ================= */
+
+    try {
+
+        const response =
+            await fetch("homepageservlet");
+
+        if (!response.ok) {
+            throw new Error(
+                "Failed to fetch node list"
+            );
+        }
+
+        const data =
+            await response.json();
+
+        console.log(
+            "Received nodes:",
+            data
+        );
+
+
+        data.nodes.forEach(node => {
+
+            const value =
+                JSON.stringify({
+                    type: node.type,
+                    name: node.name
+                });
+
+
+            /* ---------- From ---------- */
+
+            const option1 =
+                document.createElement("option");
+
+            option1.value = value;
+
+            option1.textContent =
+                `${node.type}: ${node.name}`;
+
+
+            /* ---------- To ---------- */
+
+            const option2 =
+                option1.cloneNode(true);
+
+
+            /* ---------- Explore ---------- */
+
+            const option3 =
+                option1.cloneNode(true);
+
+
+            fromNode.appendChild(option1);
+
+            toNode.appendChild(option2);
+
+            exploreField.appendChild(option3);
+
+        });
+
+
+    } catch (error) {
+
+        console.error(
+            "Error loading nodes:",
+            error
+        );
+
+    }
+
+
+    /* ================= FIND PATH ================= */
+
+    function checkSelections() {
+
+        const fromSelected =
+            fromNode.value !== "";
+
+        const toSelected =
+            toNode.value !== "";
+
+
+        findPathBtn.disabled =
+            !(fromSelected && toSelected);
+
+    }
+
+
+    fromNode.addEventListener(
+        "change",
+        checkSelections
+    );
+
+    toNode.addEventListener(
+        "change",
+        checkSelections
+    );
+
+
+    /* ================= EXPLORE RELATIONS ================= */
+
+    exploreField.addEventListener(
+        "change",
+        () => {
+
+            const nodeSelected =
+                exploreField.value !== "";
+
+            submitButton.disabled =
+                !nodeSelected;
+
+            console.log(
+                "Explore node selected:",
+                exploreField.value
+            );
+
+        }
+    );
+
+});
+
+
+/* ================= TOGGLE EXPLORE OPTIONS ================= */
+
+function toggleExploreOptions() {
+
+    const options =
+        document.getElementById(
+            "exploreOptions"
+        );
+
+    options.classList.toggle("hidden");
+
+}
+
+
+/* ================= RECOMMENDED PATH ================= */
+
+function setRecommendedPath(from, to) {
+
+    const fromNode =
+        document.getElementById("fromNode");
+
+    const toNode =
+        document.getElementById("toNode");
+
+
+    fromNode.value =
+        JSON.stringify(from);
+
+    toNode.value =
+        JSON.stringify(to);
+
+
+    /*
+     * Trigger the change events so that
+     * Find Path button becomes enabled.
+     */
+
+    fromNode.dispatchEvent(
+        new Event("change")
+    );
+
+    toNode.dispatchEvent(
+        new Event("change")
+    );
+
+
+    window.scrollTo({
+        top: 0,
+        behavior: "smooth"
+    });
+
+}
+
+</script>
+
+</head>
+
+
+<body>
+
+<div class="header">
+
+    <h1>Relationship Explorer</h1>
+
+    <p>
+        Explore connections between technologies,
+        skills, roles and projects.
+    </p>
+
+</div>
+
+
+<!-- ================= MAIN FEATURES ================= -->
+
+<div class="features">
+
+
+    <!-- FIND PATH -->
+
+    <div class="card">
+
+        <h2>Find Path</h2>
+
+        <p class="card-description">
+            Discover how two nodes are connected
+            through the knowledge graph.
+        </p>
+
+        <form
+            action="findpathservlet"
+            method="post"
+        >
+
+            <label for="fromNode">
+                From
+            </label>
+
+            <select
+                id="fromNode"
+                name="from"
+            >
+
+                <option value="">
+                    Select start node
+                </option>
+
+            </select>
+
+
+            <label for="toNode">
+                To
+            </label>
+
+            <select
+                id="toNode"
+                name="to"
+            >
+
+                <option value="">
+                    Select destination node
+                </option>
+
+            </select>
+
+
+            <button
+                id="findPathButton"
+                type="submit"
+                disabled
+            >
+                Find Path
+            </button>
+
+        </form>
+
+    </div>
+
+
+    <!-- EXPLORE RELATIONS -->
+
+    <div class="card">
+
+        <h2>Explore Relations</h2>
+
+        <p class="card-description">
+            Select a node and inspect all of its
+            direct relationships in the graph.
+        </p>
+
+        <button
+            class="explore-button"
+            onclick="toggleExploreOptions()"
+        >
+            Explore a Node
+        </button>
+
+
+        <div
+            id="exploreOptions"
+            class="hidden"
+        >
+
+            <form
+                action="explorerelationsservlet"
+                method="post"
+            >
+
+                <label for="exploreField">
+                    Node
+                </label>
+
+                <select
+                    id="exploreField"
+                    name="selectednode"
+                >
+
+                    <option value="">
+                        Select node
+                    </option>
+
+                </select>
+
+
+                <button
+                    id="submitButton"
+                    type="submit"
+                    disabled
+                >
+                    Explore Relations
+                </button>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ================= RECOMMENDATIONS ================= -->
+
+<div class="recommendations">
+
+    <div class="recommendation-card">
+
+        <h2>Try These Examples</h2>
+
+
+        <!-- PATH EXAMPLES -->
+
+        <div class="recommendation-row">
+
+            <span class="recommendation-label">
+                Project + Skill
+            </span>
+
+            <span
+                class="recommendation-item"
+                onclick="setRecommendedPath(
+                    {
+                        type: 'Project',
+                        name: 'E-Commerce Order Management System'
+                    },
+                    {
+                        type: 'Skill',
+                        name: 'OOP'
+                    }
+                )"
+            >
+                E-Commerce Order Management System
+                → OOP
+            </span>
+
+        </div>
+
+
+        <div class="recommendation-row">
+
+            <span class="recommendation-label">
+                Project + Role
+            </span>
+
+            <span
+                class="recommendation-item"
+                onclick="setRecommendedPath(
+                    {
+                        type: 'Project',
+                        name: 'E-Commerce Order Management System'
+                    },
+                    {
+                        type: 'Role',
+                        name: 'Java Backend Developer'
+                    }
+                )"
+            >
+                E-Commerce Order Management System
+                → Java Backend Developer
+            </span>
+
+        </div>
+
+
+        <div class="recommendation-row">
+
+            <span class="recommendation-label">
+                Technology + Role
+            </span>
+
+            <span
+                class="recommendation-item"
+                onclick="setRecommendedPath(
+                    {
+                        type: 'Technology',
+                        name: 'Java'
+                    },
+                    {
+                        type: 'Role',
+                        name: 'Java Backend Developer'
+                    }
+                )"
+            >
+                Java → Java Backend Developer
+            </span>
+
+        </div>
+
+
+        <div class="recommendation-row">
+
+            <span class="recommendation-label">
+                Technology + Skill
+            </span>
+
+            <span
+                class="recommendation-item"
+                onclick="setRecommendedPath(
+                    {
+                        type: 'Technology',
+                        name: 'Spring Boot'
+                    },
+                    {
+                        type: 'Skill',
+                        name: 'REST APIs'
+                    }
+                )"
+            >
+                Spring Boot → REST APIs
+            </span>
+
+        </div>
+
+
+        <div class="recommendation-row">
+
+            <span class="recommendation-label">
+                Project + Technology
+            </span>
+
+            <span
+                class="recommendation-item"
+                onclick="setRecommendedPath(
+                    {
+                        type: 'Project',
+                        name: 'Collaborative Task Management Dashboard'
+                    },
+                    {
+                        type: 'Technology',
+                        name: 'React'
+                    }
+                )"
+            >
+                Collaborative Task Management Dashboard
+                → React
+            </span>
+
+        </div>
+
+
+        <!-- EXPLORE EXAMPLES -->
+
+        <div class="recommendation-row">
+
+            <span class="recommendation-label">
+                Recommended Explore Nodes
+            </span>
+
+            <span class="recommendation-item">
+                Java
+            </span>
+
+            <span class="recommendation-item">
+                Python
+            </span>
+
+            <span class="recommendation-item">
+                Spring Boot
+            </span>
+
+            <span class="recommendation-item">
+                Java Backend Developer
+            </span>
+
+            <span class="recommendation-item">
+                E-Commerce Order Management System
+            </span>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+</body>
+
+</html>

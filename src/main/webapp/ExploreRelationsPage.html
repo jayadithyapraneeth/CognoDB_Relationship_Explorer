@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<meta charset="UTF-8">
+
+<title>Explore Relations - Relationship Explorer</title>
+
+<style>
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+
+    margin: 0;
+
+    padding: 40px 20px;
+
+    background: #f7f8fa;
+
+    color: #222;
+}
+
+.container {
+    max-width: 900px;
+    margin: auto;
+}
+
+.card {
+
+    background: white;
+
+    border: 1px solid #ddd;
+
+    border-radius: 10px;
+
+    padding: 30px;
+
+    box-shadow:
+        0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* ---------- Header ---------- */
+
+.page-title {
+
+    font-size: 28px;
+
+    margin: 0 0 8px;
+}
+
+.page-description {
+
+    color: #666;
+
+    margin-bottom: 25px;
+}
+
+/* ---------- Selected Node ---------- */
+
+.selected-node {
+
+    padding: 15px;
+
+    background: #f1f2f4;
+
+    border-radius: 6px;
+
+    margin-bottom: 25px;
+
+    font-size: 16px;
+
+    font-weight: bold;
+}
+
+/* ---------- Sections ---------- */
+
+.subsection {
+
+    margin-bottom: 25px;
+}
+
+.subsection h3 {
+
+    font-size: 18px;
+
+    margin-bottom: 10px;
+}
+
+.subsection ul {
+
+    list-style: none;
+
+    padding: 0;
+
+    margin: 0;
+}
+
+.subsection li {
+
+    background: #fafafa;
+
+    border: 1px solid #e4e4e4;
+
+    margin: 7px 0;
+
+    padding: 11px 13px;
+
+    border-radius: 6px;
+}
+
+/* ---------- Empty ---------- */
+
+.empty-message {
+
+    color: #777;
+
+    font-style: italic;
+
+    background: #fafafa;
+
+}
+
+/* ---------- Error ---------- */
+
+.error-message {
+
+    color: #b00020;
+
+    font-weight: bold;
+
+}
+
+/* ---------- Back ---------- */
+
+.back-button {
+
+    display: inline-block;
+
+    margin-top: 5px;
+
+    padding: 10px 16px;
+
+    border-radius: 5px;
+
+    background: #222;
+
+    color: white;
+
+    text-decoration: none;
+}
+
+.back-button:hover {
+
+    background: #444;
+}
+
+</style>
+
+
+<script>
+
+document.addEventListener(
+    'DOMContentLoaded',
+    async () => {
+
+        const technologiesList =
+            document.getElementById(
+                'technologiesList'
+            );
+
+        const skillsList =
+            document.getElementById(
+                'skillsList'
+            );
+
+        const projectsList =
+            document.getElementById(
+                'projectsList'
+            );
+
+        const rolesList =
+            document.getElementById(
+                'rolesList'
+            );
+
+        const selectedNode =
+            document.getElementById(
+                'selectedNode'
+            );
+
+
+        try {
+
+            const response =
+                await fetch(
+                    'explorerelationsservlet',
+                    {
+                        method: 'GET'
+                    }
+                );
+
+
+            if (!response.ok) {
+
+                throw new Error(
+                    'Server returned status '
+                    + response.status
+                );
+
+            }
+
+
+            const data =
+                await response.json();
+
+
+            console.log(
+                "Received relations:",
+                data
+            );
+
+
+            /*
+             * Display selected node
+             */
+
+            if (data.selectedNode) {
+
+                selectedNode.textContent =
+                    "Exploring: "
+                    + data.selectedNode.type
+                    + " — "
+                    + data.selectedNode.name;
+
+            }
+            else {
+
+                selectedNode.textContent =
+                    "No node selected.";
+
+            }
+
+
+            /*
+             * Display relations
+             */
+
+            function displayRelations(
+                listElement,
+                relations
+            ) {
+
+                listElement.innerHTML = "";
+
+
+                if (
+                    !Array.isArray(relations)
+                    ||
+                    relations.length === 0
+                ) {
+
+                    const li =
+                        document.createElement(
+                            'li'
+                        );
+
+                    li.textContent =
+                        "No direct relations found.";
+
+                    li.classList.add(
+                        'empty-message'
+                    );
+
+                    listElement.appendChild(
+                        li
+                    );
+
+                    return;
+
+                }
+
+
+                relations.forEach(
+                    item => {
+
+                        const li =
+                            document.createElement(
+                                'li'
+                            );
+
+                        li.textContent =
+                            item;
+
+                        listElement.appendChild(
+                            li
+                        );
+
+                    }
+                );
+
+            }
+
+
+            /*
+             * Display each category
+             */
+
+            displayRelations(
+                technologiesList,
+                data.relations?.technologies
+            );
+
+            displayRelations(
+                skillsList,
+                data.relations?.skills
+            );
+
+            displayRelations(
+                projectsList,
+                data.relations?.projects
+            );
+
+            displayRelations(
+                rolesList,
+                data.relations?.roles
+            );
+
+        }
+        catch (error) {
+
+            console.error(
+                "Error fetching relations:",
+                error
+            );
+
+
+            selectedNode.textContent =
+                "Failed to load relations.";
+
+            selectedNode.classList.add(
+                "error-message"
+            );
+
+        }
+
+    }
+);
+
+</script>
+
+</head>
+
+
+<body>
+
+<div class="container">
+
+    <div class="card">
+
+        <h1 class="page-title">
+            Explore Relations
+        </h1>
+
+        <p class="page-description">
+            Inspect the direct relationships connected
+            to a selected node in the knowledge graph.
+        </p>
+
+
+        <div
+            id="selectedNode"
+            class="selected-node"
+        >
+            Loading relations...
+        </div>
+
+
+        <div class="subsection">
+
+            <h3>
+                Technologies
+            </h3>
+
+            <ul id="technologiesList"></ul>
+
+        </div>
+
+
+        <div class="subsection">
+
+            <h3>
+                Skills
+            </h3>
+
+            <ul id="skillsList"></ul>
+
+        </div>
+
+
+        <div class="subsection">
+
+            <h3>
+                Projects
+            </h3>
+
+            <ul id="projectsList"></ul>
+
+        </div>
+
+
+        <div class="subsection">
+
+            <h3>
+                Roles
+            </h3>
+
+            <ul id="rolesList"></ul>
+
+        </div>
+
+
+        <a
+            href="HomePage.html"
+            class="back-button"
+        >
+            ← Back to Explorer
+        </a>
+
+    </div>
+
+</div>
+
+</body>
+
+</html>
